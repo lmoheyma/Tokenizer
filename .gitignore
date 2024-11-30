@@ -1,3 +1,4 @@
 .deps/
 .env
 code/artifacts/
+.states/

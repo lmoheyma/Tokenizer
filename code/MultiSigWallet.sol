@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.20;
 
 contract MultiSigWallet {
     event Deposit(address indexed sender, uint256 amount, uint256 balance);
@@ -14,6 +14,7 @@ contract MultiSigWallet {
     event RevokeConfirmation(address indexed owner, uint256 indexed txIndex);
     event ExecuteTransaction(address indexed owner, uint256 indexed txIndex);
 
+    address public immutable contractAddr;
     address[] public owners;
     mapping(address => bool) public isOwner;
     uint256 public numConfirmationsRequired;
@@ -51,14 +52,14 @@ contract MultiSigWallet {
         _;
     }
 
-    constructor(address[] memory _owners, uint256 _numConfirmationsRequired) {
+    constructor(address _contractAddr, address[] memory _owners, uint256 _numConfirmationsRequired) {
         require(_owners.length > 0, "owners required");
         require(
             _numConfirmationsRequired > 0
                 && _numConfirmationsRequired <= _owners.length,
             "invalid number of required confirmations"
         );
-
+        contractAddr = _contractAddr;
         for (uint256 i = 0; i < _owners.length; i++) {
             address owner = _owners[i];
 
@@ -76,9 +77,7 @@ contract MultiSigWallet {
         emit Deposit(msg.sender, msg.value, address(this).balance);
     }
 
-    function submitTransaction(address _to, uint256 _value, bytes memory _data)
-        public
-        onlyOwner
+    function submitTransaction(address _to, uint256 _value, bytes memory _data) public onlyOwner
     {
         uint256 txIndex = transactions.length;
 
@@ -95,12 +94,7 @@ contract MultiSigWallet {
         emit SubmitTransaction(msg.sender, txIndex, _to, _value, _data);
     }
 
-    function confirmTransaction(uint256 _txIndex)
-        public
-        onlyOwner
-        txExists(_txIndex)
-        notExecuted(_txIndex)
-        notConfirmed(_txIndex)
+    function confirmTransaction(uint256 _txIndex) public onlyOwner txExists(_txIndex) notExecuted(_txIndex) notConfirmed(_txIndex)
     {
         Transaction storage transaction = transactions[_txIndex];
         transaction.numConfirmations += 1;
@@ -109,11 +103,7 @@ contract MultiSigWallet {
         emit ConfirmTransaction(msg.sender, _txIndex);
     }
 
-    function executeTransaction(uint256 _txIndex)
-        public
-        onlyOwner
-        txExists(_txIndex)
-        notExecuted(_txIndex)
+    function executeTransaction(uint256 _txIndex) public onlyOwner txExists(_txIndex) notExecuted(_txIndex)
     {
         Transaction storage transaction = transactions[_txIndex];
 
@@ -121,21 +111,13 @@ contract MultiSigWallet {
             transaction.numConfirmations >= numConfirmationsRequired,
             "cannot execute tx"
         );
-
-        transaction.executed = true;
-
-        (bool success,) =
-            transaction.to.call{value: transaction.value}(transaction.data);
+        (bool success,) = contractAddr.call(transaction.data);
         require(success, "tx failed");
-
+        transaction.executed = true;
         emit ExecuteTransaction(msg.sender, _txIndex);
     }
 
-    function revokeConfirmation(uint256 _txIndex)
-        public
-        onlyOwner
-        txExists(_txIndex)
-        notExecuted(_txIndex)
+    function revokeConfirmation(uint256 _txIndex) public onlyOwner txExists(_txIndex) notExecuted(_txIndex)
     {
         Transaction storage transaction = transactions[_txIndex];
 
@@ -155,9 +137,7 @@ contract MultiSigWallet {
         return transactions.length;
     }
 
-    function getTransaction(uint256 _txIndex)
-        public
-        view
+    function getTransaction(uint256 _txIndex) public view
         returns (
             address to,
             uint256 value,
