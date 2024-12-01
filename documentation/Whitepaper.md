@@ -14,7 +14,7 @@ This whitepaper outlines the key features, technical structure, and potential us
 
 - **Token Name:** GBS42  
 - **Ticker Symbol:** GBS
-- **Contract Address:** 0xe6e2E1cbfc22E89704a7FB9eC11166fe5a6e3323
+- **Contract Address:** 0x00AD1e94897B5e41a3E1A2423d5aE493CCb4FDEB
 - **Blockchain:** Ethereum (Testnet Sepolia)  
 - **Token Standard:** ERC-20  
 - **Total Supply:** 100,000,000 GBS (Max Supply)  
